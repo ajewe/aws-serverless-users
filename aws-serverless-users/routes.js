@@ -13,18 +13,19 @@ const dynamoDb = IS_OFFLINE === true ?
   }) :
   new AWS.DynamoDB.DocumentClient();
 
-  const router = express.Router();
+const router = express.Router();
 
-  router.get('/users', (req, res) => {
-    const params = {
-        TableName: USERS_TABLE
-    };
-    dynamoDb.scan(params, (error, result) => {
-        if (error) {
-            res.status(400).json({ error: 'Error fetching the users' });
-        }
-        res.json(result.Items);
-    });
+router.get('/users', (req, res) => {
+  const params = {
+      TableName: USERS_TABLE
+  };
+
+  dynamoDb.scan(params, (error, result) => {
+      if (error) {
+          res.status(400).json({ error: 'Error fetching the users' });
+      }
+      res.json(result.Items);
+  });
 });
 
 router.get('/users/:id', (req, res) => {
@@ -44,22 +45,28 @@ router.get('/users/:id', (req, res) => {
     if (result.Item) {
       res.json(result.Item);
     } else {
-      res.status(404).json({ error: `Employee with id: ${id} not found` });
+      res.status(404).json({ error: `User not found` });
     }
   });
 });
 
 router.post('/users', (req, res) => {
+  const id = uuid.v4();
   const username = req.body.username;
   const password = req.body.password;
-  const id = uuid.v4();
+  const email = req.body.email;
+  const firstName = req.body.firstName;
+  const lastName = req.body.lastName;
 
   const params = {
     TableName: USERS_TABLE,
     Item: {
       id,
       username,
-      password
+      password,
+      email,
+      firstName,
+      lastName
     },
   };
 
@@ -70,7 +77,10 @@ router.post('/users', (req, res) => {
     res.json({
       id,
       username,
-      password
+      password,
+      email,
+      firstName,
+      lastName
     });
   });
 });
@@ -97,15 +107,23 @@ router.put('/users', (req, res) => {
   const id = req.body.id;
   const username = req.body.username;
   const password = req.body.password;
+  const email = req.body.email;
+  const firstName = req.body.firstName;
+  const lastName = req.body.lastName;
 
   const params = {
     TableName: USERS_TABLE,
     Key: {
       id
     },
-    UpdateExpression: 'set #username = :username',
-    ExpressionAttributeNames: { '#username': 'username' },
-    ExpressionAttributeValues: { ':username': username },
+    UpdateExpression: 'set username = :username, password = :password, email = :email, firstName = :firstName, lastName = :lastName',
+    ExpressionAttributeValues: { 
+      ':username': username,
+      ':password': password,
+      ':email': email,
+      ':firstName': firstName,
+      ':lastName': lastName
+    },
     ReturnValues: "ALL_NEW"
   }
 
