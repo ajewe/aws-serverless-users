@@ -57,31 +57,33 @@ const saltRounds = 10;
 
 router.post('/users', (req, res) => {
   const { username, password, email, firstName, lastName } = req.body;
+  
+  try {
+    bcrypt.hash(password, saltRounds, (err, hash) => {
+      const params = {
+        TableName: USERS_TABLE,
+        Item: {
+          username,
+          password_hash: hash,
+          email,
+          firstName,
+          lastName
+        },
+        ConditionExpression: "attribute_not_exists(username)",
+      };
 
-  bcrypt.hash(password, saltRounds, (err, hash) => {
-    const params = {
-      TableName: USERS_TABLE,
-      Item: {
-        username,
-        password_hash: hash,
-        email,
-        firstName,
-        lastName
-      },
-    };
-
-    dynamoDb.put(params, (error) => {
-      if (error) {
-        res.json({ error: 'Could not create user' });
-      }
-      res.json({
-        username,
-        email,
-        firstName,
-        lastName
+      dynamoDb.put(params, (error) => {
+        if (error) {
+          res.json({ error: 'Could not create user' });
+        }
+        res.json({
+          success: true
+        });
       });
-    });
-  })
+    })
+  } catch (e) {
+    res.json({ err: e });
+  }
 });
 
 //get user data
@@ -159,7 +161,7 @@ router.put('/users', authMiddleware, (req, res) => {
         }
       });
     } catch(e) {
-      res.json({e});
+      res.json({ error: e });
     }
   })
 });
